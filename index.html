@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>もしもの時ノート 医療の希望</title>
-<meta name="description" content="もし意識がなくなったり、判断が難しくなったりしたとき、どんな治療を望みますか？希望を５分で書ける無料ツールです。">
+<meta name="description" content="もし自分の意思を伝えられなくなったとき、どんな治療を望みますか？希望を５分で書ける無料ツールです。">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="もしもの時ノート 医療の希望">
-<meta property="og:description" content="もし意識がなくなったり、判断が難しくなったりしたとき、どんな治療を望みますか？希望を５分で書ける無料ツールです。">
+<meta property="og:description" content="もし自分の意思を伝えられなくなったとき、どんな治療を望みますか？希望を５分で書ける無料ツールです。">
 <meta property="og:url" content="https://medical-note.vercel.app/">
 <meta property="og:image" content="https://medical-note.vercel.app/og-image.png">
 <meta property="og:image:type" content="image/png">
@@ -19,7 +19,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="もしもの時ノート 医療の希望">
-<meta name="twitter:description" content="もし意識がなくなったり、判断が難しくなったりしたとき、どんな治療を望みますか？">
+<meta name="twitter:description" content="もし自分の意思を伝えられなくなったとき、どんな治療を望みますか？">
 <meta name="twitter:image" content="https://medical-note.vercel.app/og-image.png">
 <meta name="twitter:image:alt" content="もしもの時ノート 医療の希望">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -216,7 +216,7 @@
       <path d="M12,21.35l-1.45-1.32C5.4,15.36,2,12.28,2,8.5C2,5.42,4.42,3,7.5,3c1.74,0,3.41,0.81,4.5,2.09 C13.09,3.81,14.76,3,16.5,3C19.58,3,22,5.42,22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z"/>
     </svg>
     <h1>医療の希望</h1>
-    <p class="lead">もし意識がなくなったり、判断が難しくなったりしたとき、どんな治療を望みますか？今の気持ちを書いておきましょう。</p>
+    <p class="lead">もし自分の意思を伝えられなくなったとき、どんな治療を望みますか？今の気持ちを書いておきましょう。</p>
     <p class="hero-privacy-note">※ここに書いた内容に法的な効力はありません。今の気持ちを書いておくだけで大丈夫です。気持ちが変わったら、いつでも書き直せます。</p>
     <p class="hero-privacy-note">※入力した内容が外部へ送信・保存されることはありません。すべてお使いの端末内にのみ保存されます。</p>
   </div>
@@ -260,7 +260,7 @@ function genId(){ return 'id_' + Date.now() + '_' + Math.random().toString(36).s
 
 const STANCE_OPTIONS = ['できる限りの治療を望む', '自然に任せたい（延命処置は望まない）', '家族や医師に判断を任せる', 'わからない'];
 const PLACE_OPTIONS = ['自宅', '病院', '施設', 'ホスピス', 'わからない'];
-const TREATMENT_OPTIONS = ['希望する', '希望しない', 'わからない'];
+const TREATMENT_OPTIONS = ['希望する', '希望しない', '家族や医師に任せる', 'わからない'];
 const TREATMENTS = [
   {key:'treatCpr', label:'心肺蘇生（CPR）'},
   {key:'treatVentilator', label:'人工呼吸器'},
@@ -274,6 +274,7 @@ function migratePerson(p){
   if(p.stance === undefined) p.stance = '';
   if(p.place === undefined) p.place = '';
   TREATMENTS.forEach(t => { if(p[t.key] === undefined) p[t.key] = ''; });
+  if(p.treatOther === undefined) p.treatOther = '';
   if(p.notes === undefined) p.notes = '';
   return p;
 }
@@ -289,7 +290,7 @@ function savePeople(people){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
 }
 function newPerson(name){
-  const p = { id: genId(), name: name || '', stance:'', place:'', proxies: [], talks: [], notes: '' };
+  const p = { id: genId(), name: name || '', stance:'', place:'', proxies: [], talks: [], treatOther:'', notes: '' };
   TREATMENTS.forEach(t => { p[t.key] = ''; });
   return p;
 }
@@ -409,6 +410,7 @@ function render(){
     </div>
 
     <div class="section-title">延命治療についての考え方</div>
+    <div class="section-help">治る見込みがなく、回復が難しいと医師に診断された場合を想定して書いてください。治る病気やケガであれば、通常通り治療が行われます。</div>
     ${renderToggleGroup('stance', STANCE_OPTIONS, active.stance)}
 
     <div class="section-title">具体的な処置について</div>
@@ -422,6 +424,13 @@ function render(){
       ${renderToggleGroup(t.key, TREATMENT_OPTIONS, active[t.key], true)}
     </div>`;
   });
+
+  html += `
+    <div class="field-row">
+      <div class="field-label">その他の希望</div>
+      <input type="text" id="f_treatOther" placeholder="例: 苦痛を伴う処置は避けてほしい" value="${esc(active.treatOther)}">
+    </div>
+  `;
 
   html += `
     <div class="section-title">最期を迎えたい場所</div>
@@ -444,7 +453,7 @@ function render(){
 
   sheetWrap.innerHTML = html;
 
-  ['name','notes'].forEach(key => {
+  ['name','treatOther','notes'].forEach(key => {
     const el = document.getElementById('f_' + key);
     if(!el) return;
     el.addEventListener('input', () => {
@@ -531,7 +540,9 @@ function plainListLines(items, fields, emptyLabel){
 }
 
 function treatmentsSummary(p){
-  return TREATMENTS.map(t => t.label + '：' + (p[t.key] || '未記入')).join('\n');
+  const lines = TREATMENTS.map(t => t.label + '：' + (p[t.key] || '未記入'));
+  if(p.treatOther){ lines.push('その他：' + p.treatOther); }
+  return lines.join('\n');
 }
 
 function previewRow(label, value){
